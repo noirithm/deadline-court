@@ -4,10 +4,12 @@ mod model;
 use std::{env, fs, process};
 
 fn main() {
-    let path = match env::args().nth(1) {
-        Some(p) => p,
+    let args: Vec<String> = env::args().skip(1).collect();
+    let json_mode = args.iter().any(|a| a == "--json");
+    let path = match args.iter().find(|a| !a.starts_with("--")) {
+        Some(p) => p.clone(),
         None => {
-            eprintln!("usage: deadline-court <tasks.json>");
+            eprintln!("usage: deadline-court [--json] <tasks.json>");
             process::exit(2);
         }
     };
@@ -20,10 +22,16 @@ fn main() {
         process::exit(1);
     });
 
-    for (i, t) in tasks.iter().enumerate() {
-        match analysis::slack(&tasks, i) {
-            Some(s) => println!("{:<12} HOLDS     slack {:.1} us", t.name, s),
-            None => println!("{:<12} VIOLATED", t.name),
+    let verdicts = analysis::analyze_all(&tasks);
+
+    if json_mode {
+        println!("{}", serde_json::to_string_pretty(&verdicts).unwrap());
+        return;
+    }
+    for v in &verdicts {
+        match v.slack_us {
+            Some(s) => println!("{:<12} HOLDS     slack {:.1} us", v.name, s),
+            None => println!("{:<12} VIOLATED", v.name),
         }
     }
 }

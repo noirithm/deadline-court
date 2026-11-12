@@ -26,8 +26,26 @@ pub fn response_time(tasks: &[Task], i: usize) -> Option<f64> {
     None
 }
 
-pub fn slack(tasks: &[Task], i: usize) -> Option<f64> {
-    response_time(tasks, i).map(|r| tasks[i].deadline_us - r)
+#[derive(Debug, serde::Serialize, PartialEq)]
+pub struct Verdict {
+    pub name: String,
+    pub holds: bool,
+    pub response_us: Option<f64>,
+    pub slack_us: Option<f64>,
+}
+
+pub fn analyze_all(tasks: &[Task]) -> Vec<Verdict> {
+    (0..tasks.len())
+        .map(|i| {
+            let r = response_time(tasks, i);
+            Verdict {
+                name: tasks[i].name.clone(),
+                holds: r.is_some(),
+                response_us: r,
+                slack_us: r.map(|r| tasks[i].deadline_us - r),
+            }
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -72,6 +90,16 @@ mod tests {
     fn blocking_reduces_slack() {
         let mut tasks = set();
         tasks[0].blocking_us = 2.0;
-        assert_eq!(slack(&tasks, 0), Some(1.0));
+        assert_eq!(analyze_all(&tasks)[0].slack_us, Some(1.0));
+    }
+
+    #[test]
+    fn analyze_all_reports_each_task() {
+        let tasks = set();
+        let v = analyze_all(&tasks);
+        assert_eq!(v.len(), 3);
+        assert!(v.iter().all(|x| x.holds));
+        assert_eq!(v[2].response_us, Some(10.0));
+        assert_eq!(v[2].slack_us, Some(3.0));
     }
 }
