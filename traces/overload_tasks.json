@@ -1,0 +1,5 @@
+[
+  {"name":"arm_ctrl","priority":50,"wcet_us":200,"period_us":1000,"deadline_us":1000},
+  {"name":"sensor","priority":40,"wcet_us":300,"period_us":2000,"deadline_us":2000},
+  {"name":"logger","priority":10,"wcet_us":900,"period_us":5000,"deadline_us":1600,"blocking_us":100}
+]
