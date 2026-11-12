@@ -2,3 +2,4 @@ target/
 *.o
 *.img
 traces/scratch/
+ipc_inherit
